@@ -7,20 +7,26 @@ import json
 import uuid
 import os
 from datetime import date
-from mangum import Mangum
+
+# -------------------------------------------
+# If you need AWS Lambda serverless support, install mangum
+# and uncomment the following import and handler line.
+# -------------------------------------------
+# from mangum import Mangum
 
 app = FastAPI()
 
 # Allow CORS (adjust allowed origins for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, change "*" to your frontend domain
+    allow_origins=["*"],  # Change "*" to specific origins for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-DATA_FILE = "database.json"
+# Use an environment variable for the data file if needed
+DATA_FILE = os.getenv("DATABASE_FILE", "database.json")
 
 # Create the JSON file if it doesn't exist.
 if not os.path.exists(DATA_FILE):
@@ -60,7 +66,9 @@ class User(BaseModel):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def fake_decode_token(token: str):
-    return token  # In production, decode and verify a JWT
+    # In production, decode and verify a JWT using a secret key (optionally from an env variable)
+    # Example: SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
+    return token
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     data = read_data()
@@ -143,5 +151,6 @@ async def delete_task(task_id: str, current_user: str = Depends(get_current_user
             return {"detail": "Task deleted"}
     raise HTTPException(status_code=404, detail="Task not found")
 
-# ------------- Enable Serverless Deployment via Mangum -------------
-handler = Mangum(app)
+# ------------------ Optional Serverless Deployment ------------------
+# Uncomment the following line if you installed mangum and want AWS Lambda support.
+# handler = Mangum(app)
