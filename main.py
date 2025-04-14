@@ -6,14 +6,15 @@ from pydantic import BaseModel
 import json
 import uuid
 import os
-from datetime import date, datetime
+from datetime import date
+from mangum import Mangum
 
 app = FastAPI()
 
 # Allow CORS (adjust allowed origins for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, change "*" to your frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,7 +60,7 @@ class User(BaseModel):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def fake_decode_token(token: str):
-    return token  # In a production app, decode and verify a JWT
+    return token  # In production, decode and verify a JWT
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     data = read_data()
@@ -100,6 +101,7 @@ async def signup(user: User):
 async def add_task(task: TaskCreate, current_user: str = Depends(get_current_user)):
     data = read_data()
     task_id = str(uuid.uuid4())
+    # Use today’s date if start_date is not provided
     start_date_str = task.start_date if task.start_date else date.today().isoformat()
     new_task = {
         "id": task_id,
@@ -141,7 +143,5 @@ async def delete_task(task_id: str, current_user: str = Depends(get_current_user
             return {"detail": "Task deleted"}
     raise HTTPException(status_code=404, detail="Task not found")
 
-
 # ------------- Enable Serverless Deployment via Mangum -------------
-from mangum import Mangum
 handler = Mangum(app)
